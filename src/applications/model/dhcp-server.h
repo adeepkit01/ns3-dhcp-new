@@ -60,11 +60,10 @@ protected:
 private:
   static const int PORT = 67;                       //!< The port number
 
-  /*
-   * \brief function to run the main configuration process to be triggered when a packet is received
-   * \param socket which is expected to receive the message
-   */
-  void RunEfsm (Ptr<Socket> socket);
+
+  void NetHandler (Ptr<Socket> socket);
+  void SendOffer (DhcpHeader header, Address from);
+  void SendAck (DhcpHeader header, Address from);
 
   /*
    * \brief function to be triggered in case of timeout

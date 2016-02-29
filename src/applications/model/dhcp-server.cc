@@ -143,7 +143,7 @@ void DhcpServer::StartApplication (void)
       m_socket->SetAllowBroadcast (true);
       m_socket->Bind (local);
     }
-  m_socket->SetRecvCallback (MakeCallback (&DhcpServer::RunEfsm, this));
+  m_socket->SetRecvCallback (MakeCallback (&DhcpServer::NetHandler, this));
   m_expiredEvent = Simulator::Schedule (Seconds (1), &DhcpServer::TimerHandler, this);
 }
 
@@ -183,164 +183,192 @@ void DhcpServer::TimerHandler ()
   m_expiredEvent = Simulator::Schedule (Seconds (1), &DhcpServer::TimerHandler, this);
 }
 
-void DhcpServer::RunEfsm (Ptr<Socket> socket)
+void DhcpServer::NetHandler (Ptr<Socket> socket)
 {
-  DhcpHeader header, new_header;
-  Address from;
+  DhcpHeader header;
   Ptr<Packet> packet = 0;
-  Ipv4Address address;
-  Mac48Address source;
-  uint32_t tran;
-  uint32_t addr;
+  Address from;
   packet = m_socket->RecvFrom (from);
   if (packet->RemoveHeader (header) == 0)
     {
       return;
     }
-  source = header.GetChaddr48 ();
   if (header.GetType () == DhcpHeader::DHCPDISCOVER)
     {
-      NS_LOG_INFO ("[node " << GetNode ()->GetId () << "]  " << "Trace RX: DHCP DISCOVER from: " << InetSocketAddress::ConvertFrom (from).GetIpv4 () << " source port: " <<  InetSocketAddress::ConvertFrom (from).GetPort ());
-      tran = header.GetTran ();
-      bool found = false;
-      uint32_t found_addr;
-      std::map<std::pair<Mac48Address, uint32_t>, uint32_t>::iterator i;
-      for (i = m_leasedAddresses.begin (); i != m_leasedAddresses.end (); i++)
+      SendOffer (header,from);
+    }
+  if (header.GetType () == DhcpHeader::DHCPREQ && (header.GetReq ()).Get () >= m_minAddress.Get () && (header.GetReq ()).Get () <= m_maxAddress.Get ())
+    {
+      SendAck (header,from);
+    }
+}
+
+void DhcpServer::SendOffer (DhcpHeader header, Address from)
+{
+  DhcpHeader new_header;
+  Ipv4Address address;
+  Mac48Address source;
+  uint32_t tran;
+  uint32_t addr;
+  Ptr<Packet> packet = 0;
+  source = header.GetChaddr48 ();
+  NS_LOG_INFO ("[node " << GetNode ()->GetId () << "]  " << "Trace RX: DHCP DISCOVER from: " << InetSocketAddress::ConvertFrom (from).GetIpv4 () << " source port: " <<  InetSocketAddress::ConvertFrom (from).GetPort ());
+  tran = header.GetTran ();
+  bool found = false;
+  uint32_t found_addr;
+  std::map<std::pair<Mac48Address, uint32_t>, uint32_t>::iterator i;
+  for (i = m_leasedAddresses.begin (); i != m_leasedAddresses.end (); i++)
+    {
+      if (i->first.first == source)
         {
-          if (i->first.first == source)
+          found_addr = i->first.second;
+          found = true;
+          m_leasedAddresses.erase (i--);
+          break;
+        }
+    }
+  if (!found)
+    {
+      if ((header.GetReq ()).Get () >= m_minAddress.Get () && (header.GetReq ()).Get () <= m_maxAddress.Get ())
+        {
+          for (i = m_leasedAddresses.begin (); i != m_leasedAddresses.end (); i++)
             {
-              found_addr = i->first.second;
+              if (i->first.second == (header.GetReq ()).Get () - m_minAddress.Get ())
+                {
+                  break;
+                }
+            }
+          if (i == m_leasedAddresses.end ())
+            {
+              found_addr = (header.GetReq ()).Get () - m_minAddress.Get ();
               found = true;
-              m_leasedAddresses.erase (i--);
-              break;
-            }
-        }
-      if (!found)
-        {
-          if ((header.GetReq ()).Get () >= m_minAddress.Get () && (header.GetReq ()).Get () <= m_maxAddress.Get ())
-            {
-              for (i = m_leasedAddresses.begin (); i != m_leasedAddresses.end (); i++)
-                {
-                  if (i->first.second == (header.GetReq ()).Get () - m_minAddress.Get ())
-                    {
-                      break;
-                    }
-                }
-              if (i == m_leasedAddresses.end ())
-                {
-                  found_addr = (header.GetReq ()).Get () - m_minAddress.Get ();
-                  found = true;
-                }
-            }
-        }
-      if (found == false)
-        {
-          //figure out a new address to be leased
-          if (m_occurange <= m_maxAddress.Get () - m_minAddress.Get ())
-            {
-              for (i = m_leasedAddresses.begin (); i != m_leasedAddresses.end (); i++)
-                {
-                  //check whether the addr is busy
-                  if (i->first.second == m_nextAddressSeq && i->second != 0)
-                    {
-                      m_nextAddressSeq = m_nextAddressSeq % (m_maxAddress.Get () - m_minAddress.Get ()) + 1;
-                      i = m_leasedAddresses.begin ();
-                    }
-                  if (i->first.second == m_nextAddressSeq && i->second == 0)
-                    {
-                      m_leasedAddresses.erase (i--);
-                    }
-                }
-              if (i == m_leasedAddresses.end ())
-                {
-                  //free address found => add to the list and set the lifetime
-                  found_addr = m_nextAddressSeq;
-                  m_nextAddressSeq = m_nextAddressSeq % (m_maxAddress.Get () - m_minAddress.Get ()) + 1;
-                  found = true;
-                }
-            }
-        }
-      if (found)
-        {
-          addr = m_minAddress.Get () + found_addr;
-          m_occurange++;
-          m_leasedAddresses.insert (std::make_pair (std::make_pair (source, found_addr), m_lease.GetSeconds ()));
-          address.Set (addr);
-
-
-          packet = Create<Packet> ();
-          new_header.ResetOpt ();
-          new_header.SetType (DhcpHeader::DHCPOFFER);
-          new_header.SetChaddr48 (source);
-          new_header.SetYiaddr (address);
-          new_header.SetDhcps (m_server);
-          new_header.SetMask (m_poolMask.Get ());
-          new_header.SetTran (tran);
-          new_header.SetLease (m_lease.GetSeconds ());
-          new_header.SetRenew (m_renew.GetSeconds ());
-          new_header.SetRebind (m_rebind.GetSeconds ());
-          new_header.SetTime ();
-          packet->AddHeader (new_header);
-
-          if ((m_socket->SendTo (packet, 0, InetSocketAddress (Ipv4Address ("255.255.255.255"), InetSocketAddress::ConvertFrom (from).GetPort ()))) >= 0)
-            {
-              NS_LOG_INFO ("[node " << GetNode ()->GetId () << "]  " << "Trace TX: DHCP OFFER");
-            }
-          else
-            {
-              NS_LOG_INFO ("[node " << GetNode ()->GetId () << "]  " << "Error while sending DHCP OFFER");
             }
         }
     }
-
-  if (header.GetType () == DhcpHeader::DHCPREQ)
+  if (found == false)
     {
-      uint32_t addr;
-      Ipv4Address address;
-      address = header.GetReq ();
-      addr = address.Get ();
-
-      NS_LOG_INFO ("[node " << GetNode ()->GetId () << "]  " << "Trace RX: DHCP REQUEST from: " << InetSocketAddress::ConvertFrom (from).GetIpv4 () <<
-                   " source port: " <<  InetSocketAddress::ConvertFrom (from).GetPort () << " refreshed addr is =" << address);
-
-      source = header.GetChaddr48 ();
-
-
-
-
-
-      tran = header.GetTran ();
-      std::map<std::pair<Mac48Address, uint32_t>, uint32_t>::iterator i;
-      for (i = m_leasedAddresses.begin (); i != m_leasedAddresses.end (); i++)
+      //figure out a new address to be leased
+      if (m_occurange <= m_maxAddress.Get () - m_minAddress.Get ())
         {
-          //update the lifetime of this address
-          if ((m_minAddress.Get () + i->first.second) == addr)
+          for (i = m_leasedAddresses.begin (); i != m_leasedAddresses.end (); i++)
             {
-              (i->second) += m_lease.GetSeconds ();
-              packet = Create<Packet> ();
-              new_header.ResetOpt ();
-              new_header.SetType (DhcpHeader::DHCPACK);
-              new_header.SetChaddr48 (source);
-              new_header.SetYiaddr (address);
-              new_header.SetTran (tran);
-              new_header.SetTime ();
-              packet->AddHeader (new_header);
-              m_peer = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
-              if (m_peer != address)
+              //check whether the addr is busy
+              if (i->first.second == m_nextAddressSeq && i->second != 0)
                 {
-                  m_socket->SendTo (packet, 0, InetSocketAddress (Ipv4Address ("255.255.255.255"), InetSocketAddress::ConvertFrom (from).GetPort ()));
+                  m_nextAddressSeq = m_nextAddressSeq % (m_maxAddress.Get () - m_minAddress.Get ()) + 1;
+                  i = m_leasedAddresses.begin ();
                 }
-              else
+              if (i->first.second == m_nextAddressSeq && i->second == 0)
                 {
-                  m_socket->SendTo (packet, 0, InetSocketAddress (m_peer, InetSocketAddress::ConvertFrom (from).GetPort ()));
+                  m_leasedAddresses.erase (i--);
                 }
-              break;
+            }
+          if (i == m_leasedAddresses.end ())
+            {
+              //free address found => add to the list and set the lifetime
+              found_addr = m_nextAddressSeq;
+              m_nextAddressSeq = m_nextAddressSeq % (m_maxAddress.Get () - m_minAddress.Get ()) + 1;
+              found = true;
             }
         }
-      if (i == m_leasedAddresses.end ())
+    }
+  if (found)
+    {
+      addr = m_minAddress.Get () + found_addr;
+      m_occurange++;
+      m_leasedAddresses.insert (std::make_pair (std::make_pair (source, found_addr), m_lease.GetSeconds ()));
+      address.Set (addr);
+
+
+      packet = Create<Packet> ();
+      new_header.ResetOpt ();
+      new_header.SetType (DhcpHeader::DHCPOFFER);
+      new_header.SetChaddr48 (source);
+      new_header.SetYiaddr (address);
+      new_header.SetDhcps (m_server);
+      new_header.SetMask (m_poolMask.Get ());
+      new_header.SetTran (tran);
+      new_header.SetLease (m_lease.GetSeconds ());
+      new_header.SetRenew (m_renew.GetSeconds ());
+      new_header.SetRebind (m_rebind.GetSeconds ());
+      new_header.SetTime ();
+      packet->AddHeader (new_header);
+
+      if ((m_socket->SendTo (packet, 0, InetSocketAddress (Ipv4Address ("255.255.255.255"), InetSocketAddress::ConvertFrom (from).GetPort ()))) >= 0)
         {
-          NS_LOG_INFO ("[node " << GetNode ()->GetId () << "]  " << "This IP addr does not exists or released!");
+          NS_LOG_INFO ("[node " << GetNode ()->GetId () << "]  " << "Trace TX: DHCP OFFER");
         }
+      else
+        {
+          NS_LOG_INFO ("[node " << GetNode ()->GetId () << "]  " << "Error while sending DHCP OFFER");
+        }
+    }
+}
+
+
+void DhcpServer::SendAck (DhcpHeader header, Address from)
+{
+  DhcpHeader new_header;
+  Mac48Address source;
+  uint32_t tran;
+  uint32_t addr;
+  Ptr<Packet> packet = 0;
+  Ipv4Address address;
+  address = header.GetReq ();
+  addr = address.Get ();
+
+  NS_LOG_INFO ("[node " << GetNode ()->GetId () << "]  " << "Trace RX: DHCP REQUEST from: " << InetSocketAddress::ConvertFrom (from).GetIpv4 () <<
+               " source port: " <<  InetSocketAddress::ConvertFrom (from).GetPort () << " refreshed addr is =" << address);
+
+  source = header.GetChaddr48 ();
+  tran = header.GetTran ();
+  std::map<std::pair<Mac48Address, uint32_t>, uint32_t>::iterator i;
+  for (i = m_leasedAddresses.begin (); i != m_leasedAddresses.end (); i++)
+    {
+      //update the lifetime of this address
+      if ((m_minAddress.Get () + i->first.second) == addr)
+        {
+          (i->second) += m_lease.GetSeconds ();
+          packet = Create<Packet> ();
+          new_header.ResetOpt ();
+          new_header.SetType (DhcpHeader::DHCPACK);
+          new_header.SetChaddr48 (source);
+          new_header.SetYiaddr (address);
+          new_header.SetTran (tran);
+          new_header.SetTime ();
+          packet->AddHeader (new_header);
+          m_peer = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
+          if (m_peer != address)
+            {
+              m_socket->SendTo (packet, 0, InetSocketAddress (Ipv4Address ("255.255.255.255"), InetSocketAddress::ConvertFrom (from).GetPort ()));
+            }
+          else
+            {
+              m_socket->SendTo (packet, 0, InetSocketAddress (m_peer, InetSocketAddress::ConvertFrom (from).GetPort ()));
+            }
+          break;
+        }
+    }
+  if (i == m_leasedAddresses.end ())
+    {
+      packet = Create<Packet> ();
+      new_header.ResetOpt ();
+      new_header.SetType (DhcpHeader::DHCPNACK);
+      new_header.SetChaddr48 (source);
+      new_header.SetYiaddr (address);
+      new_header.SetTran (tran);
+      new_header.SetTime ();
+      packet->AddHeader (new_header);
+      m_peer = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
+      if (m_peer != address)
+        {
+          m_socket->SendTo (packet, 0, InetSocketAddress (Ipv4Address ("255.255.255.255"), InetSocketAddress::ConvertFrom (from).GetPort ()));
+        }
+      else
+        {
+          m_socket->SendTo (packet, 0, InetSocketAddress (m_peer, InetSocketAddress::ConvertFrom (from).GetPort ()));
+        }
+      NS_LOG_INFO ("[node " << GetNode ()->GetId () << "]  " << "This IP addr does not exists or released!");
     }
 }
 
