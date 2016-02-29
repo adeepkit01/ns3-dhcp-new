@@ -19,7 +19,6 @@
  *         Ankit Deepak <adadeepak8@gmail.com> and
  *         Deepti Rajagopal <deeptir96@gmail.com> for DHCP patch on ns-3.24
  *
- *
  */
 
 #ifndef DHCP_CLIENT_H
@@ -39,36 +38,43 @@ class Socket;
 class Packet;
 
 /**
- * \ingroup dhcpclientserver
- * \class DhcpClient
- * \brief A Dhcp client. It learns DHCP server and IP gw addresses from IP header.
- * In other words DHCP server must be located on the network gw node.
+ * \ingroup dhcp
  *
+ * \class DhcpClient
+ * \brief Implements the functionality of a DHCP client
  */
 class DhcpClient : public Application
 {
 public:
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
   static TypeId
   GetTypeId (void);
 
+  /**
+   * \brief Constructor
+   */
   DhcpClient ();
 
+  /**
+   * \brief Destructor
+   */
   virtual ~DhcpClient ();
 
-
   /**
-   * \brief return the current dhcp server
-   * \return Ipv4Address of the server
+   * \brief Get the IPv4Address of current DHCP server
+   * \return Ipv4Address of current DHCP server
    */
   Ipv4Address GetDhcpServer (void);
 
-
   /**
    * Assign a fixed random variable stream number to the random variables
-   * used by this model.  Return the number of streams (possibly zero) that
+   * used by this model. Return the number of streams (possibly zero) that
    * have been assigned.
    *
-   * \param stream first stream index to use
+   * \param stream First stream index to use
    * \return the number of stream indices assigned by this model
    */
   int64_t AssignStreams (int64_t stream);
@@ -79,54 +85,67 @@ protected:
 private:
   enum States
   {
-    WAIT_OFFER = 1,       //!< Defining state of the client waiting offer
-    REFRESH_LEASE = 2,    //!< Defining state of the client needing lease refresh
-    WAIT_ACK = 9         //!< Defining state of the client waiting acknowledgement
+    WAIT_OFFER = 1,             //!< State of a client that waits for the offer
+    REFRESH_LEASE = 2,          //!< State of a client that needs to refresh the lease
+    WAIT_ACK = 9                //!< State of a client that waits for acknowledgement
   };
 
-
   /*
-   * \brief function to start the dhcp client application in node
+   * \brief Starts the DHCP client application
    */
   virtual void StartApplication (void);
 
   /*
-   * \brief function to stop the dhcp client application in node
+   * \brief Stops the DHCP client application
    */
   virtual void StopApplication (void);
 
   /*
-   * \brief function to handle the LinkState
+   * \brief Handles changes in LinkState
    */
   void LinkStateHandler (void);
 
   /*
-   * \brief function to handle the network
+   * \brief Handles incoming packets from the network
+   * \param socket Socket bound to port 68 of the DHCP client
    */
   void NetHandler (Ptr<Socket> socket);
 
-  void Boot (void);
-  void OfferHandler (DhcpHeader header);
-  void AcceptAck (DhcpHeader header, Address from);
-  void Select (void);
-  void Request (void);
   /*
-   * \brief function triggered in case of retransmission
-   *
-  void RtrsHandler (void);
+   * \brief Sends DHCP DISCOVER and changes the client state to WAIT_OFFER
+   */
+  void Boot (void);
 
-   *
-   * \brief function to run the main configuration process
-   *
-  void RunEfsm (void);*/
+  /*
+   * \brief Stores DHCP offers in m_offerList
+   * \param header Header of the DHCP OFFER message
+   */
+  void OfferHandler (DhcpHeader header);
 
+  /*
+   * \brief Selects an OFFER from m_offerList
+   */
+  void Select (void);
 
-  uint8_t m_state;                       //!< State of the client
-  uint32_t device;                       //!< device identifier
-  Ptr<Socket> m_socket;                  //!< socket for remote communication
-  Ipv4Address m_remoteAddress;           //!< Address of the peer
-  Ipv4Address m_myAddress;               //!< Address assigned to the client
+  /*
+   * \brief Sends the DHCP REQUEST message and changes the client state to WAIT_ACK
+   */
+  void Request (void);
+
+  /*
+   * \brief Receives the DHCP ACK and configures IP address of the client.
+   *        It also triggers the timeout, renew and rebind events. 
+   * \param header Header of the DHCP ACK message
+   * \param from IP address of DHCP server that sent the DHCP ACK
+   */
+  void AcceptAck (DhcpHeader header, Address from);
+
+  uint8_t m_state;                       //!< State of the DHCP client
+  uint32_t device;                       //!< Device identifier
+  Ptr<Socket> m_socket;                  //!< Socket for remote communication
+  Ipv4Address m_remoteAddress;           //!< Initially set to 255.255.255.255 to start DHCP
   Ipv4Address m_offeredAddress;          //!< Address offered to the client
+  Ipv4Address m_myAddress;               //!< Address assigned to the client
   Ipv4Mask m_myMask;                     //!< Mask of the address assigned
   Ipv4Address m_server;                  //!< Address of the DHCP server
   EventId m_requestEvent;                //!< Address refresh event
@@ -134,10 +153,10 @@ private:
   EventId m_refreshEvent;                //!< Message refresh event
   EventId m_rebindEvent;                 //!< Message rebind event
   EventId m_nextOfferEvent;              //!< Message next offer event
-  EventId m_timeout;                     //!< The timeout time
-  Time m_lease;                          //!< Store the lease time of the address
-  Time m_renew;                          //!< Store the renew time of the address
-  Time m_rebind;                         //!< Store the rebind time of the address
+  EventId m_timeout;                     //!< The timeout period
+  Time m_lease;                          //!< Store the lease time of address
+  Time m_renew;                          //!< Store the renew time of address
+  Time m_rebind;                         //!< Store the rebind time of address
   Time m_nextoffer;                      //!< Time to try the next offer (if request gets no reply)
   Ptr<RandomVariableStream> m_ran;       //!< Uniform random variable for transaction ID
   Time m_rtrs;                           //!< Defining the time for retransmission
