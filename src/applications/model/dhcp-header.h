@@ -30,9 +30,9 @@
 
 namespace ns3 {
 /**
- * \ingroup applications
+ * \ingroup dhcp
  * \class DhcpHeader
- * \brief Bootp header with dhcp messages supports option-Subnet Mask(1), Address Request(50), Refresh Lease Time(51), DHCP Message Type(53), DHCP Server ID(54) and End(255) of bootp
+ * \brief Bootp header with dhcp messages supports option-Subnet Mask(1), Address Request(50), Refresh Lease Time(51), DHCP Message Type(53), DHCP Server ID(54), Renew Time(58), Rebind Time(59) and End(255) of bootp
 
   \verbatim
     0                   1                   2                   3
@@ -76,105 +76,106 @@ public:
 
   enum options
   {
-    OP_MASK = 1,
-    OP_ADDREQ = 50,
-    OP_LEASE = 51,
-    OP_MSGTYPE = 53,
-    OP_SERVID = 54,
-    OP_RENEW = 58,
-    OP_REBIND = 59,
-    OP_END = 255
+    OP_MASK = 1,        //!< BOOTP Option 1: Address Mask
+    OP_ADDREQ = 50,     //!< BOOTP Option 50: Requested Address
+    OP_LEASE = 51,      //!< BOOTP Option 51: Address Lease Time
+    OP_MSGTYPE = 53,    //!< BOOTP Option 53: DHCP Message Type
+    OP_SERVID = 54,     //!< BOOTP Option 54: Server Identifier
+    OP_RENEW = 58,      //!< BOOTP Option 58: Address Renewal Time
+    OP_REBIND = 59,     //!< BOOTP Option 59: Address Rebind Time
+    OP_END = 255        //!< BOOTP Option 255: END
   };
 
   enum Messages
   {
-    DHCPDISCOVER = 0,     //!< Defining code for discover message
-    DHCPOFFER = 1,        //!< Defining code for offer message
-    DHCPREQ = 2,          //!< Defining code for request message
-    DHCPACK = 4,          //!< Defining code for ack message
-    DHCPNACK = 5          //!< Defining code for nack message
+    DHCPDISCOVER = 0,     //!< Code for DHCP Discover
+    DHCPOFFER = 1,        //!< Code for DHCP Offer 
+    DHCPREQ = 2,          //!< Code for DHCP Request 
+    DHCPACK = 4,          //!< Code for DHCP ACK
+    DHCPNACK = 5          //!< Code for DHCP NACK 
   };
 
   /**
-   * \brief Set the type of bootp and dhcp messages
-   * \param the type of message
+   * \brief Set the type of BOOTP and DHCP messages
+   * \param type The type of message
    */
   void SetType (uint8_t type);
 
   /**
-   * \brief return the type of dhcp message
-   * \return the sequence number
+   * \brief Return the type of DHCP message
+   * \return The sequence number
    */
   uint8_t GetType (void) const;
 
   /**
-   * \brief set the hardware information
-   * \param hardware type and hardware length
+   * \brief Set the hardware information
+   * \param htype Hardware type 
+   * \param hlen Hardware length
    */
   void SetHWType (uint8_t htype, uint8_t hlen);
 
   /**
-   * \brief set the transaction ID
-   * \param the transaction number
+   * \brief Set the transaction ID
+   * \param tran The transaction number
    */
   void SetTran (uint32_t tran);
 
   /**
-   * \brief set the time
+   * \brief Set the time when message is sent
    */
   void SetTime ();
 
   /**
-   * \brief get the transaction id
-   * \return the transaction id
+   * \brief Get the transaction id
+   * \return The transaction id
    */
   uint32_t GetTran (void) const;
 
   /**
-   * \brief TypeId function
-   * \return the TypeId
+   * \brief Get the type ID.
+   * \return the object TypeId
    */
   static TypeId GetTypeId (void);
 
   /**
-   * \brief set the MAC address of the device
-   * \param Mac48Address of the client
+   * \brief Set the MAC address of the device
+   * \param addr Mac48Address of the device
    */
   void SetChaddr48 (Mac48Address addr);
 
   /**
-   * \brief set the MAC address of the device
-   * \param Mac64Address of the client
+   * \brief Set the MAC address of the device
+   * \param addr Mac64Address of the device
    */
   void SetChaddr64 (Mac64Address addr);
 
   /**
-   * \brief get the MAC address of the client
-   * \return the MAC 48 address of the client
+   * \brief Get the MAC address of the client
+   * \return The MAC 48 address of the client
    */
   Mac48Address GetChaddr48 (void);
 
   /**
-   * \brief get the MAC address of the client
-   * \return the MAC 64 address of the client
+   * \brief Get the MAC address of the client
+   * \return The MAC 64 address of the client
    */
   Mac64Address GetChaddr64 (void);
 
   /**
-   * \brief set the IP Address of the client
-   * \param the client Ipv4Address
+   * \brief Set the IP Address of the client
+   * \param addr the client Ipv4Address
    */
   void SetYiaddr (Ipv4Address addr);
 
   /**
-   * \brief get the IP Address of the client
+   * \brief Get the IP Address of the client
    * \return IP address of the client
    */
   Ipv4Address GetYiaddr (void) const;
 
   /**
-   * \brief set the dhcp server information
-   * \param IP address of the server
+   * \brief Set the dhcp server information
+   * \param addr IP address of the server
    */
   void SetDhcps (Ipv4Address addr);
 
@@ -185,67 +186,67 @@ public:
   void SetReq (Ipv4Address addr);
 
   /**
-   * \brief set the mask of the address
-   * \param 32 bit mask
+   * \brief Set the mask of the IPv4 address
+   * \param addr 32 bit mask
    */
   void SetMask (uint32_t addr);
 
   /**
-   * \brief set the lease time of the address
-   * \param 32 bit time
+   * \brief Set the lease time of the address
+   * \param time 32 bit time
    */
   void SetLease (uint32_t time);
 
   /**
-   * \brief set the Renewal time of the address
-   * \param 32 bit time
+   * \brief Set the Renewal time of the address
+   * \param time 32 bit time
    */
   void SetRenew (uint32_t time);
 
   /**
-   * \brief set the Rebind time of the address
-   * \param 32 bit time
+   * \brief Set the Rebind time of the address
+   * \param time 32 bit time
    */
   void SetRebind (uint32_t time);
 
   /**
-   * \brief get the information about the dhcp server
-   * \return the dhcp server address
+   * \brief Get the information about the dhcp server
+   * \return the DHCP server address
    */
   Ipv4Address GetDhcps (void) const;
 
   /**
-   * \brief get the address requested by the client
-   * \return the address requested by the client
+   * \brief Get the address requested by the client
+   * \return The address requested by the client
    */
   Ipv4Address GetReq (void) const;
 
   /**
-   * \brief return the mask of the network
+   * \brief Return the mask of the network
    * \return 32 bit mask
    */
   uint32_t GetMask (void) const;
 
   /**
-   * \brief return the lease time of the address
+   * \brief Return the lease time of the address
    * \return 32 bit time
    */
   uint32_t GetLease (void) const;
 
   /**
-   * \brief return the Renewal time of the address
+   * \brief Return the Renewal time of the address
    * \return 32 bit time
    */
   uint32_t GetRenew (void) const;
 
   /**
-   * \brief return the Rebind time of the address
+   * \brief Return the Rebind time of the address
    * \return 32 bit time
    */
   uint32_t GetRebind (void) const;
 
   /**
-   * \brief reset the options of the bootp message
+   * \brief Reset the BOOTP options
    */
   void ResetOpt ();
 

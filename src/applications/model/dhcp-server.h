@@ -38,20 +38,28 @@ class Socket;
 class Packet;
 
 /**
- * \ingroup applications
- * \defgroup dhcpclientserver DhcpClientServer
- */
-
-/**
- * \ingroup dhcpclientserver
+ * \ingroup dhcp
+ *
  * \class DhcpServer
- * \brief A Dhcp server.
+ * \brief Implements the functionality of a DHCP server
  */
 class DhcpServer : public Application
 {
 public:
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
   static TypeId GetTypeId (void);
+
+  /**
+   * \brief Constructor
+   */
   DhcpServer ();
+
+  /**
+   * \brief Destructor
+   */
   virtual ~DhcpServer ();
 
 protected:
@@ -60,40 +68,56 @@ protected:
 private:
   static const int PORT = 67;                       //!< The port number
 
-
+  /*
+   * \brief Handles incoming packets from the network
+   * \param socket Socket bound to port 67 of the DHCP server
+   */
   void NetHandler (Ptr<Socket> socket);
+
+  /*
+   * \brief Sends DHCP offer after receiving Discover
+   * \param header DHCP header of the received message
+   * \param from Address of the sending node
+   */
   void SendOffer (DhcpHeader header, Address from);
+
+  /*
+   * \brief Sends DHCP ACK (or NACK) after receiving Request
+   * \param header DHCP header of the received message
+   * \param from Address of the sending node
+   */
   void SendAck (DhcpHeader header, Address from);
 
   /*
-   * \brief function to be triggered in case of timeout
+   * \brief Modifies the remaining lease time of the addresses
    */
   void TimerHandler (void);
+
   /*
-   * \brief function to start the dhcp server application in node
+   * \brief Starts the DHCP Server application
    */
   virtual void StartApplication (void);
 
   /*
-   * \brief function to stop the dhcp server application in node
+   * \brief Stops the DHCP client application
    */
   virtual void StopApplication (void);
 
   Ptr<Socket> m_socket;                  //!< The socket for the application
   Address m_local;                       //!< The local address
   Ipv4Address m_poolAddress;             //!< The network address available to the server
-  Ipv4Address m_minAddress;              //!< The first address of the range
-  Ipv4Address m_maxAddress;              //!< The last address of the range
-  uint32_t m_occurange;                  //!< Number of occupied address in the server
-  Ipv4Mask m_poolMask;                   //!< The network mask available to the server
+  Ipv4Address m_minAddress;              //!< The first address of the range of the pool
+  Ipv4Address m_maxAddress;              //!< The last address of the range of the pool
+  uint32_t m_occurange;                  //!< Number of occupied address in the pool
+  Ipv4Mask m_poolMask;                   //!< The network mask of the pool
   Ipv4Address m_server;                  //!< Address of the dhcp server
-  Ipv4Address m_peer;                    //!< Address of the peer
+  Ipv4Address m_peer;                    //!< Address of the sending node
   std::map<std::pair<Mac48Address, uint32_t>, uint32_t> m_leasedAddresses; //!< Leased address and their status (cache memory)
-  uint32_t m_nextAddressSeq;             //!< The host identifier
-  Time m_lease;                          //!< Defining the granted lease time
-  Time m_renew;                          //!< Defining the renewal time for the client
-  Time m_rebind;                         //!< Defining the rebinding time for the client
-  EventId m_expiredEvent;                //!< The expired event identifier
+  uint32_t m_nextAddressSeq;             //!< The next address in the sequence which can be alloted
+  Time m_lease;                          //!< The granted lease time for an address
+  Time m_renew;                          //!< The renewal time for an address
+  Time m_rebind;                         //!< The rebinding time for an address
+  EventId m_expiredEvent;                //!< The Event to trigger the TimerHandler
 };
 
 } // namespace ns3

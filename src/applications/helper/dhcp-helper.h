@@ -32,44 +32,87 @@
 namespace ns3 {
 
 /**
-* \brief create an dhcp service
-*/
+ * \ingroup dhcp
+ *
+ * \class DhcpClientHelper
+ * \brief The helper class used to configure and install the client application on nodes
+ */
 class DhcpClientHelper
 {
 public:
   /**
-  * Create DhcpClientHelper
-  *
-  * \param port The port number of the dhcp server
-  */
+   * \brief Constructor of client helper
+   * \param device The interface on which DHCP client has to be installed
+   */
   DhcpClientHelper (uint32_t device);
+
+  /**
+   * \brief Function to set DHCP client attributes
+   * \param name Name of the attribute
+   * \param value Value to be set
+   */ 
   void SetAttribute (std::string name, const AttributeValue &value);
+
+  /**
+   * \brief Function to install DHCP client of a node
+   * \param node The node on which DHCP client application has to be installed
+   * \return The application container with installed DHCP client
+   */
   ApplicationContainer Install (Ptr<Node> node) const;
 
 private:
+
+  /**
+   * \brief Function to install DHCP client on a node
+   * \param node The node on which DHCP client application has to be installed
+   * \return The pointer to the installed DHCP client
+   */
   Ptr<Application> InstallPriv (Ptr<Node> node) const;
-  ObjectFactory m_factory;
+  ObjectFactory m_factory;                 //!< The subset of ns3::object for setting attributes
 };
 
+
+/**
+ * \ingroup dhcp
+ *
+ * \class DhcpServerHelper
+ * \brief The helper class used to configure and install the server application on nodes
+ */
 class DhcpServerHelper
 {
 public:
   /**
-  * Create DhcpServerHelper
-  *
-  * \param pool_addr The domain of the IP addr that will be assigned dynamically
-  * \param pool_mask The mask of the domain
-  * \param option_1 Here of type IPv4 address (e.g. IP addr of some network server)
-  * \param port The port number of the dhcp server
-  *
-  */
+   * \brief Constructor of server helper
+   * \param pool_addr The address of the allocated pool
+   * \param pool_mask The mask of the allocated pool
+   * \param serv_addr The IP address of the server
+   * \param min_addr The lower bound of the address pool
+   * \param max_addr The upper bound of the address pool
+   */
   DhcpServerHelper (Ipv4Address pool_addr, Ipv4Mask pool_mask, Ipv4Address serv_addr, Ipv4Address min_addr, Ipv4Address max_addr);
+
+  /**
+   * \brief Function to set DHCP server attributes
+   * \param name Name of the attribute
+   * \param value Value to be set
+   */ 
   void SetAttribute (std::string name, const AttributeValue &value);
+
+  /**
+   * \brief Function to install DHCP server on a node
+   * \param node The node on which DHCP server application has to be installed
+   * \return The application container with installed DHCP server
+   */
   ApplicationContainer Install (Ptr<Node> node) const;
 
 private:
+  /**
+   * \brief Function to install DHCP server of a node
+   * \param node The node on which DHCP server application has to be installed
+   * \return The pointer to the installed DHCP server
+   */
   Ptr<Application> InstallPriv (Ptr<Node> node) const;
-  ObjectFactory m_factory;
+  ObjectFactory m_factory;             //!< The subset of ns3::object for setting attributes
 };
 
 } // namespace ns3

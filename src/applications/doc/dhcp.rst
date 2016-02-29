@@ -34,9 +34,7 @@ The examples for DHCP can be found at ``src/applications/examples/dhcp-example.c
 Scope and Limitations
 *********************
 
-The current implementation of DHCP supports only one DHCP server in a network, 
-which can auto configure any number of clients. The server should be provided 
-with a network address and mask.
+The server should be provided with a network address, mask and a range of address for the pool. One client application can be installed on only one netdevice in a node, and can configure address for only that netdevice.
 
 The following five basic DHCP messages are supported: 
 
@@ -46,13 +44,17 @@ The following five basic DHCP messages are supported:
 - DHCP ack and
 - DHCP nack
 
-Also, the following five options of BootP are supported:
+Also, the following eight options of BootP are supported:
 - 1 (Mask),
 - 50 (Requested Address),
 - 51 (Address Lease Time),
 - 53 (DHCP message type),
-- 54 (DHCP server) and
+- 54 (DHCP server), 
+- 58 (Address renew time),
+- 59 (Address rebind time) and
 - 255 (end)
+
+The client identifier option (61) can be implemented in near future.
 
 In the current implementation, a DHCP client can obtain IPv4 address dynamically 
 from the DHCP server, which must be renewed after a lease time period.
