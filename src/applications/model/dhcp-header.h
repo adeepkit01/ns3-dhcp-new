@@ -31,8 +31,12 @@
 namespace ns3 {
 /**
  * \ingroup dhcp
+ *
  * \class DhcpHeader
- * \brief Bootp header with dhcp messages supports option-Subnet Mask(1), Address Request(50), Refresh Lease Time(51), DHCP Message Type(53), DHCP Server ID(54), Renew Time(58), Rebind Time(59) and End(255) of bootp
+ * \brief BOOTP header with DHCP messages supports the following options:
+ *        Subnet Mask (1), Address Request (50), Refresh Lease Time (51),
+ *        DHCP Message Type (53), DHCP Server ID (54), Renew Time (58),
+ *        Rebind Time (59) and End (255) of BOOTP
 
   \verbatim
     0                   1                   2                   3
@@ -72,7 +76,21 @@ namespace ns3 {
 class DhcpHeader : public Header
 {
 public:
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
+  static TypeId GetTypeId (void);
+
+  /**
+   * \brief Constructor
+   */
   DhcpHeader ();
+
+  /**
+   * \brief Destructor
+   */
+  virtual ~DhcpHeader ();
 
   enum options
   {
@@ -89,10 +107,10 @@ public:
   enum Messages
   {
     DHCPDISCOVER = 0,     //!< Code for DHCP Discover
-    DHCPOFFER = 1,        //!< Code for DHCP Offer 
-    DHCPREQ = 2,          //!< Code for DHCP Request 
+    DHCPOFFER = 1,        //!< Code for DHCP Offer
+    DHCPREQ = 2,          //!< Code for DHCP Request
     DHCPACK = 4,          //!< Code for DHCP ACK
-    DHCPNACK = 5          //!< Code for DHCP NACK 
+    DHCPNACK = 5          //!< Code for DHCP NACK
   };
 
   /**
@@ -103,13 +121,13 @@ public:
 
   /**
    * \brief Return the type of DHCP message
-   * \return The sequence number
+   * \return The type of message
    */
   uint8_t GetType (void) const;
 
   /**
    * \brief Set the hardware information
-   * \param htype Hardware type 
+   * \param htype Hardware type
    * \param hlen Hardware length
    */
   void SetHWType (uint8_t htype, uint8_t hlen);
@@ -121,105 +139,81 @@ public:
   void SetTran (uint32_t tran);
 
   /**
-   * \brief Set the time when message is sent
-   */
-  void SetTime ();
-
-  /**
    * \brief Get the transaction id
    * \return The transaction id
    */
   uint32_t GetTran (void) const;
 
   /**
-   * \brief Get the type ID.
-   * \return the object TypeId
+   * \brief Set the time when message is sent
    */
-  static TypeId GetTypeId (void);
+  void SetTime ();
 
   /**
-   * \brief Set the MAC address of the device
+   * \brief Set the Mac48Address of the device
    * \param addr Mac48Address of the device
    */
   void SetChaddr48 (Mac48Address addr);
 
   /**
-   * \brief Set the MAC address of the device
+   * \brief Get the Mac48Address of the client
+   * \return Mac48Address of the client
+   */
+  Mac48Address GetChaddr48 (void);
+
+  /**
+   * \brief Set the Mac64Address of the device
    * \param addr Mac64Address of the device
    */
   void SetChaddr64 (Mac64Address addr);
 
   /**
-   * \brief Get the MAC address of the client
-   * \return The MAC 48 address of the client
-   */
-  Mac48Address GetChaddr48 (void);
-
-  /**
-   * \brief Get the MAC address of the client
-   * \return The MAC 64 address of the client
+   * \brief Get the Mac64Address of the client
+   * \return Mac64Address of the client
    */
   Mac64Address GetChaddr64 (void);
 
   /**
-   * \brief Set the IP Address of the client
-   * \param addr the client Ipv4Address
+   * \brief Set the IPv4Address of the client
+   * \param addr The client Ipv4Address
    */
   void SetYiaddr (Ipv4Address addr);
 
   /**
-   * \brief Get the IP Address of the client
-   * \return IP address of the client
+   * \brief Get the IPv4Address of the client
+   * \return IPv4Address of the client
    */
   Ipv4Address GetYiaddr (void) const;
 
   /**
-   * \brief Set the dhcp server information
-   * \param addr IP address of the server
+   * \brief Set the DHCP server information
+   * \param addr IPv4Address of the server
    */
   void SetDhcps (Ipv4Address addr);
 
   /**
-   * \brief set the requested address by the client
-   * \param the Ipv4Address client is requesting for
-   */
-  void SetReq (Ipv4Address addr);
-
-  /**
-   * \brief Set the mask of the IPv4 address
-   * \param addr 32 bit mask
-   */
-  void SetMask (uint32_t addr);
-
-  /**
-   * \brief Set the lease time of the address
-   * \param time 32 bit time
-   */
-  void SetLease (uint32_t time);
-
-  /**
-   * \brief Set the Renewal time of the address
-   * \param time 32 bit time
-   */
-  void SetRenew (uint32_t time);
-
-  /**
-   * \brief Set the Rebind time of the address
-   * \param time 32 bit time
-   */
-  void SetRebind (uint32_t time);
-
-  /**
-   * \brief Get the information about the dhcp server
-   * \return the DHCP server address
+   * \brief Get the information about the DHCP server
+   * \return IPv4Address of DHCP server
    */
   Ipv4Address GetDhcps (void) const;
 
   /**
-   * \brief Get the address requested by the client
-   * \return The address requested by the client
+   * \brief Set the requested Ipv4Address by the client
+   * \param addr Ipv4Address client is requesting for
+   */
+  void SetReq (Ipv4Address addr);
+
+  /**
+   * \brief Get the IPv4Address requested by the client
+   * \return IPv4Address requested by the client
    */
   Ipv4Address GetReq (void) const;
+
+  /**
+   * \brief Set the mask of the IPv4Address
+   * \param addr 32 bit mask
+   */
+  void SetMask (uint32_t addr);
 
   /**
    * \brief Return the mask of the network
@@ -228,16 +222,34 @@ public:
   uint32_t GetMask (void) const;
 
   /**
-   * \brief Return the lease time of the address
+   * \brief Set the lease time of the IPv4Address
+   * \param time 32 bit time
+   */
+  void SetLease (uint32_t time);
+
+  /**
+   * \brief Return the lease time of the IPv4Address
    * \return 32 bit time
    */
   uint32_t GetLease (void) const;
+
+  /**
+   * \brief Set the Renewal time of the IPv4Address
+   * \param time 32 bit time
+   */
+  void SetRenew (uint32_t time);
 
   /**
    * \brief Return the Renewal time of the address
    * \return 32 bit time
    */
   uint32_t GetRenew (void) const;
+
+  /**
+   * \brief Set the Rebind time of the IPv4Address
+   * \param time 32 bit time
+   */
+  void SetRebind (uint32_t time);
 
   /**
    * \brief Return the Rebind time of the address
@@ -267,8 +279,8 @@ private:
   uint32_t m_len;                        //!< The length of the header
   uint16_t m_secs;                       //!< Seconds elapsed
   uint16_t m_flags;                      //!< BOOTP flags
-  Mac48Address m_chAddr48;               //!< The MAC 48 Address of the client
-  Mac64Address m_chAddr64;               //!< The MAC 64 Address of the client
+  Mac48Address m_chAddr48;               //!< The Mac48Address of the client
+  Mac64Address m_chAddr64;               //!< The Mac64Address of the client
   Ipv4Address m_yiAddr;                  //!< Your (client) IP address
   Ipv4Address m_ciAddr;                  //!< The IP address of the client
   Ipv4Address m_siAddr;                  //!< Next Server IP address
@@ -280,7 +292,7 @@ private:
   uint8_t m_file[128];                   //!< File name (Padded for now)
   uint8_t m_magic_cookie[4];             //!< DHCP Magic Cookie
   uint32_t m_lease;                      //!< The lease time of the address
-  uint32_t m_renew;                     //!< The renewal time for the client
+  uint32_t m_renew;                      //!< The renewal time for the client
   uint32_t m_rebind;                     //!< The rebinding time for the client
   bool m_opt[255];                       //!< BOOTP option list
 };
