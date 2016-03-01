@@ -20,6 +20,7 @@
  *         Deepti Rajagopal <deeptir96@gmail.com> for DHCP patch on ns-3.24
  *
  */
+
 #ifndef DHCP_HELPER_H
 #define DHCP_HELPER_H
 
@@ -50,18 +51,17 @@ public:
    * \brief Function to set DHCP client attributes
    * \param name Name of the attribute
    * \param value Value to be set
-   */ 
+   */
   void SetAttribute (std::string name, const AttributeValue &value);
 
   /**
    * \brief Function to install DHCP client of a node
    * \param node The node on which DHCP client application has to be installed
-   * \return The application container with installed DHCP client
+   * \return The application container with DHCP client installed
    */
   ApplicationContainer Install (Ptr<Node> node) const;
 
 private:
-
   /**
    * \brief Function to install DHCP client on a node
    * \param node The node on which DHCP client application has to be installed
@@ -95,13 +95,13 @@ public:
    * \brief Function to set DHCP server attributes
    * \param name Name of the attribute
    * \param value Value to be set
-   */ 
+   */
   void SetAttribute (std::string name, const AttributeValue &value);
 
   /**
    * \brief Function to install DHCP server on a node
    * \param node The node on which DHCP server application has to be installed
-   * \return The application container with installed DHCP server
+   * \return The application container with DHCP server installed
    */
   ApplicationContainer Install (Ptr<Node> node) const;
 
