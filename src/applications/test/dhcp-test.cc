@@ -60,24 +60,16 @@ DhcpTestCase1::DoRun (void)
 
   NodeContainer net (MN, Router);
 
-//
-// Explicitly create the channels required by the topology (shown above).
-//
   CsmaHelper csma;
   csma.SetChannelAttribute ("DataRate", StringValue ("5Mbps"));
   csma.SetChannelAttribute ("Delay", StringValue ("2ms"));
   csma.SetDeviceAttribute ("Mtu", UintegerValue (1500));
   NetDeviceContainer dev_net = csma.Install (net);
 
-//
-// We've got the "hardware" in place.  Now we need to add IP addresses.
-//
   InternetStackHelper tcpip;
   tcpip.Install (MN);
   tcpip.Install (Router);
 
-
-  //MN configuration: i/f create + setup
   Ptr<Ipv4> ipv4MN = net.Get (0)->GetObject<Ipv4> ();
   uint32_t ifIndex = ipv4MN->AddInterface (dev_net.Get (0));
   ipv4MN->AddAddress (ifIndex, Ipv4InterfaceAddress (Ipv4Address ("0.0.0.0"), Ipv4Mask ("/0")));
@@ -96,25 +88,19 @@ DhcpTestCase1::DoRun (void)
   ipv4MN2->SetForwarding (ifIndex2, true);
   ipv4MN2->SetUp (ifIndex2);
 
-  //Router configuration: i/f create + setup
   Ptr<Ipv4> ipv4Router = net.Get (3)->GetObject<Ipv4> ();
   ifIndex = ipv4Router->AddInterface (dev_net.Get (3));
-  ipv4Router->AddAddress (ifIndex, Ipv4InterfaceAddress (Ipv4Address ("172.30.0.12"), Ipv4Mask ("/0"))); //workaround (to support undirected broadcast)!!!!!
+  ipv4Router->AddAddress (ifIndex, Ipv4InterfaceAddress (Ipv4Address ("172.30.0.12"), Ipv4Mask ("/0"))); // need to remove this workaround
   ipv4Router->AddAddress (ifIndex, Ipv4InterfaceAddress (Ipv4Address ("172.30.0.12"), Ipv4Mask ("/24")));
   ipv4Router->SetForwarding (ifIndex, true);
   ipv4Router->SetUp (ifIndex);
 
   Ptr<Ipv4> ipv4Router1 = net.Get (4)->GetObject<Ipv4> ();
   ifIndex = ipv4Router1->AddInterface (dev_net.Get (4));
-  ipv4Router1->AddAddress (ifIndex, Ipv4InterfaceAddress (Ipv4Address ("173.30.0.12"), Ipv4Mask ("/0"))); //workaround (to support undirected broadcast)!!!!!
+  ipv4Router1->AddAddress (ifIndex, Ipv4InterfaceAddress (Ipv4Address ("173.30.0.12"), Ipv4Mask ("/0"))); // need to remove this workaround
   ipv4Router1->AddAddress (ifIndex, Ipv4InterfaceAddress (Ipv4Address ("173.30.0.12"), Ipv4Mask ("/24")));
   ipv4Router1->SetForwarding (ifIndex, true);
   ipv4Router1->SetUp (ifIndex);
-
-
-
-// Create the network and install related service modules on all nodes.
-//
 
   DhcpServerHelper dhcp_server (Ipv4Address ("172.30.0.0"), Ipv4Mask ("/24"), Ipv4Address ("172.30.0.12"), Ipv4Address ("172.30.0.10"), Ipv4Address ("172.30.0.100"));
   ApplicationContainer ap_dhcp_server = dhcp_server.Install (Router.Get (0));
@@ -135,7 +121,6 @@ DhcpTestCase1::DoRun (void)
   ap_dhcp_client3.Start (Seconds (400.0));
   ap_dhcp_client3.Stop (Seconds (500.0));
 
-
   DhcpClientHelper dhcp_client1 (0);
   ApplicationContainer ap_dhcp_client1 = dhcp_client1.Install (MN.Get (1));
   ap_dhcp_client1.Start (Seconds (1.0));
@@ -146,13 +131,10 @@ DhcpTestCase1::DoRun (void)
   ap_dhcp_client2.Start (Seconds (1.0));
   ap_dhcp_client2.Stop (Seconds (500.0));
 
-
   Simulator::Stop (Seconds (500.0));
-//
-// Now, do the actual simulation.
-//
+
   Simulator::Run ();
-  /*Assert the network of client and the pool*/
+
   Ipv4Address address = ipv4MN->GetAddress (ifIndex, 0).GetLocal ();
   NS_TEST_ASSERT_MSG_EQ (Ipv4Address ("172.30.0.11"),address,address);
 
@@ -162,10 +144,8 @@ DhcpTestCase1::DoRun (void)
   Ipv4Address address2 = ipv4MN2->GetAddress (ifIndex, 0).GetLocal ();
   NS_TEST_ASSERT_MSG_EQ (Ipv4Address ("172.30.0.13"),address2,address2);
 
-
   Simulator::Destroy ();
 }
-
 
 class DhcpTestSuite : public TestSuite
 {
