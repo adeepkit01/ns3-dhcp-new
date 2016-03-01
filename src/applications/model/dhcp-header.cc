@@ -49,7 +49,9 @@ DhcpHeader::DhcpHeader ()
   m_dhcps = addr;
   m_req = addr;
   m_len = 240;
-  int i;
+
+  uint32_t i;
+
   for (i = 0; i < 10; i++)
     {
       m_hwpad[i] = 0;
@@ -79,6 +81,11 @@ void DhcpHeader::SetType (uint8_t type)
   m_bootp = (m_op == 0||m_op == 2) ? 1 : 2;
 }
 
+uint8_t DhcpHeader::GetType (void) const
+{
+  return m_op;
+}
+
 void DhcpHeader::SetHWType (uint8_t htype, uint8_t hlen)
 {
   m_hType = htype;
@@ -100,17 +107,12 @@ void DhcpHeader::SetTime ()
   m_secs = (uint16_t) Simulator::Now ().GetSeconds ();
 }
 
-
-uint8_t DhcpHeader::GetType (void) const
-{
-  return m_op;
-}
-
 void DhcpHeader::SetChaddr48 (Mac48Address addr)
 {
   m_hLen = 6;
   m_chAddr48 = addr;
 }
+
 Mac48Address DhcpHeader::GetChaddr48 (void)
 {
   NS_ASSERT_MSG (m_hLen == 6, "MAC address is not 48 bit long");
@@ -148,6 +150,11 @@ void DhcpHeader::SetDhcps (Ipv4Address addr)
   m_dhcps = addr;
 }
 
+Ipv4Address DhcpHeader::GetDhcps (void) const
+{
+  return m_dhcps;
+}
+
 void DhcpHeader::SetReq (Ipv4Address addr)
 {
   if (m_opt[OP_ADDREQ] == false)
@@ -156,6 +163,11 @@ void DhcpHeader::SetReq (Ipv4Address addr)
       m_opt[OP_ADDREQ] = true;
     }
   m_req = addr;
+}
+
+Ipv4Address DhcpHeader::GetReq (void) const
+{
+  return m_req;
 }
 
 void DhcpHeader::SetMask (uint32_t addr)
@@ -168,6 +180,11 @@ void DhcpHeader::SetMask (uint32_t addr)
   m_mask = addr;
 }
 
+uint32_t DhcpHeader::GetMask (void) const
+{
+  return m_mask;
+}
+
 void DhcpHeader::SetLease (uint32_t time)
 {
   if (m_opt[OP_LEASE] == false)
@@ -176,6 +193,11 @@ void DhcpHeader::SetLease (uint32_t time)
       m_opt[OP_LEASE] = true;
     }
   m_lease = time;
+}
+
+uint32_t DhcpHeader::GetLease (void) const
+{
+  return m_lease;
 }
 
 void DhcpHeader::SetRenew (uint32_t time)
@@ -188,6 +210,11 @@ void DhcpHeader::SetRenew (uint32_t time)
   m_renew = time;
 }
 
+uint32_t DhcpHeader::GetRenew (void) const
+{
+  return m_renew;
+}
+
 void DhcpHeader::SetRebind (uint32_t time)
 {
   if (m_opt[OP_REBIND] == false)
@@ -198,15 +225,9 @@ void DhcpHeader::SetRebind (uint32_t time)
   m_rebind = time;
 }
 
-
-Ipv4Address DhcpHeader::GetDhcps (void) const
+uint32_t DhcpHeader::GetRebind (void) const
 {
-  return m_dhcps;
-}
-
-Ipv4Address DhcpHeader::GetReq (void) const
-{
-  return m_req;
+  return m_rebind;
 }
 
 void DhcpHeader::ResetOpt ()
@@ -217,26 +238,6 @@ void DhcpHeader::ResetOpt ()
     {
       m_opt[i] = false;
     }
-}
-
-uint32_t DhcpHeader::GetMask (void) const
-{
-  return m_mask;
-}
-
-uint32_t DhcpHeader::GetLease (void) const
-{
-  return m_lease;
-}
-
-uint32_t DhcpHeader::GetRenew (void) const
-{
-  return m_renew;
-}
-
-uint32_t DhcpHeader::GetRebind (void) const
-{
-  return m_rebind;
 }
 
 uint32_t DhcpHeader::GetSerializedSize (void) const
@@ -253,10 +254,12 @@ TypeId DhcpHeader::GetTypeId (void)
   ;
   return tid;
 }
+
 TypeId DhcpHeader::GetInstanceTypeId (void) const
 {
   return GetTypeId ();
 }
+
 void DhcpHeader::Print (std::ostream &os) const
 {
   os << "(type=" << m_op << ")";
