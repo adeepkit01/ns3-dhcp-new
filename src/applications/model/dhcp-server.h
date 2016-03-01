@@ -66,7 +66,7 @@ protected:
   virtual void DoDispose (void);
 
 private:
-  static const int PORT = 67;                       //!< The port number
+  static const int PORT = 67;                       //!< Port number of DHCP server
 
   /*
    * \brief Handles incoming packets from the network
@@ -75,21 +75,21 @@ private:
   void NetHandler (Ptr<Socket> socket);
 
   /*
-   * \brief Sends DHCP offer after receiving Discover
+   * \brief Sends DHCP offer after receiving DHCP Discover
    * \param header DHCP header of the received message
-   * \param from Address of the sending node
+   * \param from Address of the DHCP client
    */
   void SendOffer (DhcpHeader header, Address from);
 
   /*
    * \brief Sends DHCP ACK (or NACK) after receiving Request
    * \param header DHCP header of the received message
-   * \param from Address of the sending node
+   * \param from Address of the DHCP client
    */
   void SendAck (DhcpHeader header, Address from);
 
   /*
-   * \brief Modifies the remaining lease time of the addresses
+   * \brief Modifies the remaining lease time of addresses
    */
   void TimerHandler (void);
 
@@ -103,21 +103,21 @@ private:
    */
   virtual void StopApplication (void);
 
-  Ptr<Socket> m_socket;                  //!< The socket for the application
+  Ptr<Socket> m_socket;                  //!< The socket bound to port 67
   Address m_local;                       //!< The local address
   Ipv4Address m_poolAddress;             //!< The network address available to the server
-  Ipv4Address m_minAddress;              //!< The first address of the range of the pool
-  Ipv4Address m_maxAddress;              //!< The last address of the range of the pool
+  Ipv4Address m_minAddress;              //!< The first address in the address pool
+  Ipv4Address m_maxAddress;              //!< The last address in the address pool
   uint32_t m_occurange;                  //!< Number of occupied address in the pool
   Ipv4Mask m_poolMask;                   //!< The network mask of the pool
-  Ipv4Address m_server;                  //!< Address of the dhcp server
-  Ipv4Address m_peer;                    //!< Address of the sending node
+  Ipv4Address m_server;                  //!< Address of DHCP server
+  Ipv4Address m_peer;                    //!< Address of DHCP client
   std::map<std::pair<Mac48Address, uint32_t>, uint32_t> m_leasedAddresses; //!< Leased address and their status (cache memory)
   uint32_t m_nextAddressSeq;             //!< The next address in the sequence which can be alloted
   Time m_lease;                          //!< The granted lease time for an address
   Time m_renew;                          //!< The renewal time for an address
   Time m_rebind;                         //!< The rebinding time for an address
-  EventId m_expiredEvent;                //!< The Event to trigger the TimerHandler
+  EventId m_expiredEvent;                //!< The Event to trigger TimerHandler
 };
 
 } // namespace ns3
