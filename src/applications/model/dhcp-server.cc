@@ -132,17 +132,19 @@ void DhcpServer::StartApplication (void)
                 {
                   uint32_t id = ipv4->GetAddress (ifIndex, addrIndex).GetLocal ().Get () - m_minAddress.Get ();
                   m_occurange++;
-                  m_leasedAddresses.insert (std::make_pair (std::make_pair (Mac48Address::ConvertFrom (GetNode ()->GetDevice (ifIndex)->GetAddress ()), id), 0xffffffff)); //set infinite GRANTED_LEASED_TIME for my address
+                  m_leasedAddresses.insert (std::make_pair (std::make_pair (Mac48Address::ConvertFrom (GetNode ()->GetDevice (ifIndex)->GetAddress ()), id), 0xffffffff)); // set infinite GRANTED_LEASED_TIME for my address
                   break;
                 }
             }
         }
+
       TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
       m_socket = Socket::CreateSocket (GetNode (), tid);
       InetSocketAddress local = InetSocketAddress (Ipv4Address::GetAny (), PORT);
       m_socket->SetAllowBroadcast (true);
       m_socket->Bind (local);
     }
+
   m_socket->SetRecvCallback (MakeCallback (&DhcpServer::NetHandler, this));
   m_expiredEvent = Simulator::Schedule (Seconds (1), &DhcpServer::TimerHandler, this);
 }
@@ -155,18 +157,19 @@ void DhcpServer::StopApplication ()
     {
       m_socket->SetRecvCallback (MakeNullCallback<void, Ptr<Socket> > ());
     }
+
   m_leasedAddresses.clear ();
   Simulator::Remove (m_expiredEvent);
 }
 
 void DhcpServer::TimerHandler ()
 {
-  //setup no of timer out events and release of unsolicited addresses from the list!
-  int a = 1;
+  // Set up timeout events and release of unsolicited addresses from the list
+  uint32_t a = 1;
   std::map<std::pair<Mac48Address, uint32_t>, uint32_t>::iterator i;
   for (i = m_leasedAddresses.begin (); i != m_leasedAddresses.end (); i++, a++)
     {
-      //update the addr state
+      // update the address state
       if (i->second == 1)
         {
           i->second = 0;
@@ -247,12 +250,12 @@ void DhcpServer::SendOffer (DhcpHeader header, Address from)
     }
   if (found == false)
     {
-      //figure out a new address to be leased
+      // find a new address to be leased
       if (m_occurange <= m_maxAddress.Get () - m_minAddress.Get ())
         {
           for (i = m_leasedAddresses.begin (); i != m_leasedAddresses.end (); i++)
             {
-              //check whether the addr is busy
+              // check whether the address is occupied
               if (i->first.second == m_nextAddressSeq && i->second != 0)
                 {
                   m_nextAddressSeq = m_nextAddressSeq % (m_maxAddress.Get () - m_minAddress.Get ()) + 1;
@@ -265,7 +268,6 @@ void DhcpServer::SendOffer (DhcpHeader header, Address from)
             }
           if (i == m_leasedAddresses.end ())
             {
-              //free address found => add to the list and set the lifetime
               found_addr = m_nextAddressSeq;
               m_nextAddressSeq = m_nextAddressSeq % (m_maxAddress.Get () - m_minAddress.Get ()) + 1;
               found = true;
@@ -278,7 +280,6 @@ void DhcpServer::SendOffer (DhcpHeader header, Address from)
       m_occurange++;
       m_leasedAddresses.insert (std::make_pair (std::make_pair (source, found_addr), m_lease.GetSeconds ()));
       address.Set (addr);
-
 
       packet = Create<Packet> ();
       new_header.ResetOpt ();
@@ -305,7 +306,6 @@ void DhcpServer::SendOffer (DhcpHeader header, Address from)
     }
 }
 
-
 void DhcpServer::SendAck (DhcpHeader header, Address from)
 {
   DhcpHeader new_header;
@@ -325,7 +325,7 @@ void DhcpServer::SendAck (DhcpHeader header, Address from)
   std::map<std::pair<Mac48Address, uint32_t>, uint32_t>::iterator i;
   for (i = m_leasedAddresses.begin (); i != m_leasedAddresses.end (); i++)
     {
-      //update the lifetime of this address
+      // update the lease time of this address
       if ((m_minAddress.Get () + i->first.second) == addr)
         {
           (i->second) += m_lease.GetSeconds ();
@@ -371,6 +371,5 @@ void DhcpServer::SendAck (DhcpHeader header, Address from)
       NS_LOG_INFO ("[node " << GetNode ()->GetId () << "]  " << "This IP addr does not exists or released!");
     }
 }
-
 
 } // Namespace ns3
