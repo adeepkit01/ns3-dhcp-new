@@ -90,6 +90,8 @@ private:
     WAIT_ACK = 9                //!< State of a client that waits for acknowledgement
   };
 
+  static const int DHCP_PEER_PORT = 67; //!< DHCP server port
+
   /*
    * \brief Starts the DHCP client application
    */

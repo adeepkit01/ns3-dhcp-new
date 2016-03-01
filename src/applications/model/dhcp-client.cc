@@ -21,6 +21,7 @@
  *
  *
  */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <ns3/ipv4.h>
@@ -46,8 +47,6 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("DhcpClient");
 NS_OBJECT_ENSURE_REGISTERED (DhcpClient);
-
-static const int DHCP_PEER_PORT = 67; //!< Defining DHCP port
 
 TypeId
 DhcpClient::GetTypeId (void)
@@ -95,7 +94,6 @@ DhcpClient::~DhcpClient ()
 {
   NS_LOG_FUNCTION_NOARGS ();
 }
-
 
 Ipv4Address DhcpClient::GetDhcpServer (void)
 {
@@ -156,7 +154,6 @@ DhcpClient::StopApplication ()
   m_socket->Close ();
 }
 
-
 void DhcpClient::LinkStateHandler (void)
 {
   if (GetNode ()->GetDevice (device)->IsLinkUp ())
@@ -211,34 +208,30 @@ void DhcpClient::NetHandler (Ptr<Socket> socket)
     }
 }
 
-void DhcpClient::AcceptAck (DhcpHeader header, Address from)
+void DhcpClient::Boot (void)
 {
-  Simulator::Remove (m_rebindEvent);
-  Simulator::Remove (m_refreshEvent);
-  Simulator::Remove (m_timeout);
-  NS_LOG_INFO ("[node " << GetNode ()->GetId () << "]  " << "Trace TX: DHCP ACK RECEIVED");
-  Ptr<Ipv4> ipv4 = GetNode ()->GetObject<Ipv4> ();
-  int32_t ifIndex = ipv4->GetInterfaceForAddress (m_myAddress);
-  ipv4->RemoveAddress (ifIndex, 0);
+  DhcpHeader header;
+  Ptr<Packet> packet;
+  packet = Create<Packet> ();
+  header.ResetOpt ();
+  m_tran = (uint32_t) (m_ran->GetValue ());
+  header.SetTran (m_tran);
+  header.SetType (DhcpHeader::DHCPDISCOVER);
+  header.SetTime ();
+  header.SetChaddr48 (Mac48Address::ConvertFrom (GetNode ()->GetDevice (device)->GetAddress ()));
+  packet->AddHeader (header);
 
-  ipv4->AddAddress (ifIndex, Ipv4InterfaceAddress ((Ipv4Address)m_offeredAddress, m_myMask));
-  ipv4->SetUp (ifIndex);
-  NS_LOG_INFO ("here");
-  InetSocketAddress remote = InetSocketAddress (InetSocketAddress::ConvertFrom (from).GetIpv4 (), DHCP_PEER_PORT);
-  m_socket->Connect (remote);
-  m_myAddress = m_offeredAddress;
-  Ipv4StaticRoutingHelper ipv4RoutingHelper;
-  Ptr<Ipv4StaticRouting> staticRouting = ipv4RoutingHelper.GetStaticRouting (ipv4);
-  staticRouting->SetDefaultRoute (InetSocketAddress::ConvertFrom (from).GetIpv4 (), ifIndex, 0);
-
-  m_remoteAddress = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
-  NS_LOG_INFO ("[node " << GetNode ()->GetId () << "]  " << "Current DHCP Server is =" << m_remoteAddress);
-
-  m_offerList.clear ();
-  m_refreshEvent = Simulator::Schedule (m_renew, &DhcpClient::Request, this);
-  m_rebindEvent = Simulator::Schedule (m_rebind, &DhcpClient::Request, this);
-  m_timeout =  Simulator::Schedule (m_lease, &DhcpClient::Boot, this);
-  m_state = REFRESH_LEASE;
+  if ((m_socket->SendTo (packet, 0, InetSocketAddress (Ipv4Address ("255.255.255.255"), DHCP_PEER_PORT))) >= 0)
+    {
+      NS_LOG_INFO ("[node " << GetNode ()->GetId () << "] Trace TX: DHCP DISCOVER" );
+    }
+  else
+    {
+      NS_LOG_INFO ("[node " << GetNode ()->GetId () << "]  " << "Error while sending DHCP DISCOVER to " << m_remoteAddress);
+    }
+  m_state = WAIT_OFFER;
+  m_offered = false;
+  m_discoverEvent = Simulator::Schedule (m_rtrs, &DhcpClient::Boot, this);
 }
 
 void DhcpClient::OfferHandler (DhcpHeader header)
@@ -277,7 +270,7 @@ void DhcpClient::Request (void)
     {
       packet = Create<Packet> ();
       header.ResetOpt ();
-      header.SetType (DhcpHeader::DHCPREQ); //Send DHCP Request
+      header.SetType (DhcpHeader::DHCPREQ);
       header.SetTime ();
       header.SetTran (m_tran);
       header.SetReq (m_offeredAddress);
@@ -312,30 +305,34 @@ void DhcpClient::Request (void)
     }
 }
 
-void DhcpClient::Boot (void)
+void DhcpClient::AcceptAck (DhcpHeader header, Address from)
 {
-  DhcpHeader header;
-  Ptr<Packet> packet;
-  packet = Create<Packet> ();
-  header.ResetOpt ();
-  m_tran = (uint32_t) (m_ran->GetValue ());
-  header.SetTran (m_tran);
-  header.SetType (DhcpHeader::DHCPDISCOVER);
-  header.SetTime ();
-  header.SetChaddr48 (Mac48Address::ConvertFrom (GetNode ()->GetDevice (device)->GetAddress ()));
-  packet->AddHeader (header);
+  Simulator::Remove (m_rebindEvent);
+  Simulator::Remove (m_refreshEvent);
+  Simulator::Remove (m_timeout);
+  NS_LOG_INFO ("[node " << GetNode ()->GetId () << "]  " << "Trace TX: DHCP ACK RECEIVED");
+  Ptr<Ipv4> ipv4 = GetNode ()->GetObject<Ipv4> ();
+  int32_t ifIndex = ipv4->GetInterfaceForAddress (m_myAddress);
+  ipv4->RemoveAddress (ifIndex, 0);
 
-  if ((m_socket->SendTo (packet, 0, InetSocketAddress (Ipv4Address ("255.255.255.255"), DHCP_PEER_PORT))) >= 0)
-    {
-      NS_LOG_INFO ("[node " << GetNode ()->GetId () << "] Trace TX: DHCP DISCOVER" );
-    }
-  else
-    {
-      NS_LOG_INFO ("[node " << GetNode ()->GetId () << "]  " << "Error while sending DHCP DISCOVER to " << m_remoteAddress);
-    }
-  m_state = WAIT_OFFER;
-  m_offered = false;
-  m_discoverEvent = Simulator::Schedule (m_rtrs, &DhcpClient::Boot, this);
+  ipv4->AddAddress (ifIndex, Ipv4InterfaceAddress ((Ipv4Address)m_offeredAddress, m_myMask));
+  ipv4->SetUp (ifIndex);
+  NS_LOG_INFO ("here");
+  InetSocketAddress remote = InetSocketAddress (InetSocketAddress::ConvertFrom (from).GetIpv4 (), DHCP_PEER_PORT);
+  m_socket->Connect (remote);
+  m_myAddress = m_offeredAddress;
+  Ipv4StaticRoutingHelper ipv4RoutingHelper;
+  Ptr<Ipv4StaticRouting> staticRouting = ipv4RoutingHelper.GetStaticRouting (ipv4);
+  staticRouting->SetDefaultRoute (InetSocketAddress::ConvertFrom (from).GetIpv4 (), ifIndex, 0);
+
+  m_remoteAddress = InetSocketAddress::ConvertFrom (from).GetIpv4 ();
+  NS_LOG_INFO ("[node " << GetNode ()->GetId () << "]  " << "Current DHCP Server is =" << m_remoteAddress);
+
+  m_offerList.clear ();
+  m_refreshEvent = Simulator::Schedule (m_renew, &DhcpClient::Request, this);
+  m_rebindEvent = Simulator::Schedule (m_rebind, &DhcpClient::Request, this);
+  m_timeout =  Simulator::Schedule (m_lease, &DhcpClient::Boot, this);
+  m_state = REFRESH_LEASE;
 }
 
 } // Namespace ns3
